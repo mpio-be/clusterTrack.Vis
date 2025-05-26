@@ -9,7 +9,7 @@
 
 map <- function(clust) {
 
-  mapviewOptions(fgb = FALSE)
+  # mapviewOptions(fgb = FALSE)
   m = mapview(map.types = c("CartoDB", "Esri.WorldImagery"))
 
   x = copy(clust)
@@ -26,9 +26,9 @@ map <- function(clust) {
   
 
 
-  m + tr + mapview(p, zcol = "cluster")
-  m + mapview(tr, zcol = "segement", lwd = tr$lwd,lty = "dashed" )
-  m + mapview(tr, zcol = c("segement", "filter")) + mapview(p, zcol = "cluster")
+  m +
+  mapview(tr, zcol = "filter" ) +
+  mapview(p, zcol  = "cluster")
 
   
 
