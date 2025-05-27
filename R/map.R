@@ -32,13 +32,8 @@ map <- function(clust) {
     mapview(p, zcol  = "cluster", layer.name = "cluster")
     
 
-
-
   o@map |>
   addAntpath(lng = z[,1],lat = z[,2],   color = "#7e7f81cc", weight = 2)
-
-
-
 
 
 
