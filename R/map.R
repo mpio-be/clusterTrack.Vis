@@ -1,38 +1,48 @@
 
+#' @import mapview leaflet glue ggplot2
+NULL
+
+#' Map a ctdf object
+#'
+#' Visualize clustered track data on an interactive map.
+#'
+#' @param ctdf A `ctdf` object.
 #' @export
 #' @examples
-#' data(lbdo66867)
-#' ctdf = as_ctdf(lbdo66867,time = "locationDate", crs = 4326, project_to = "+proj=eqearth")
-#' slice_ctdf(ctdf)
-#' clust = cluster_track(ctdf)
-#' map(clust)
+#' data(pesa56511)
+#' ctdf  = as_ctdf(pesa56511, time = "locationDate", s_srs = 4326, t_srs = "+proj=eqearth") |>cluster_track()
+#' map(ctdf)
 
-map <- function(clust) {
+map <- function(ctdf) {
 
-  if (Sys.info()[["sysname"]] == "Linux")  mapviewOptions(fgb = FALSE)
+  .check_ctdf(ctdf)
 
-  x = copy(clust)
-  clus   = st_as_sf(x[cluster>0])  
-  nonclus = st_as_sf(x[cluster ==0])  
+  if (Sys.info()[["sysname"]] == "Linux")  mapviewOptions(fgb = FALSE) # 'cause Chrome sucks. 
+
+  x            = copy(ctdf)
+  clus         = st_as_sf(x[cluster>0])  
+  nonclus      = st_as_sf(x[cluster ==0])  
   x[, cluster := factor(cluster)]
-  
+
   cluster_centroids = data.table(clus)
   cluster_centroids =
     cluster_centroids[, .(
-      start = min(timestamp),
-      stop  = max(timestamp),
-      tenure   = difftime(max(timestamp), min(timestamp), units = "days"),
+      start    = min(timestamp),
+      stop     = max(timestamp),
+      tenure   = difftime(max(timestamp), min(timestamp), units = "days") |> as.numeric(),
       geometry = st_union(location) |> st_convex_hull() |> st_centroid(),
       segment  = unique(.segment),
       N        = .N
-
     ), by = cluster]
+  cluster_centroids[tenure < 1, Tenure := glue_data(.SD, "{round(tenure*24)}[h]")]
+  cluster_centroids[tenure > 1, Tenure := glue_data(.SD, "{round(tenure,1)}[d]")]
+  
   cluster_centroids[, lab := glue_data(
     .SD,
-    "tenure:{round(tenure,1)}[d]      <br>
-    start:{format(start, '%d-%b-%y')} <br>
-    stop:{format(stop, '%d-%b-%y')}   <br>
-    segment:{segment}                 <br>
+    "tenure:{Tenure}                     <br>
+    start:{format(start, '%d-%b-%y %Hh')} <br>
+    stop:{format(stop, '%d-%b-%y %Hh')}   <br>
+    segment:{segment}                    <br>
     N:{N}"
   )]
     
@@ -41,26 +51,22 @@ map <- function(clust) {
     st_as_sf() |>
     st_transform(4326)
     
-    
-
 
   tr = as_ctdf_track(x) |> setDT()
-  tr[, let(segement = factor(.segment), filter = factor(.filter))]
-  tr[(!.filter), lwd := 5]
-  tr[(.filter),  lwd := 3]
+  tr[, let(segement = factor(.segment) )]
   tr = st_as_sf(tr)
-  
-  trf = dplyr::filter(tr, .filter) 
-  trnf = dplyr::filter(tr, !.filter) 
+
+  polys = ctdf[cluster > 0, .(hull = .mcp (location, p = 1) ), by = cluster] |>
+    st_as_sf()
 
 
-
-  o = mapview(map.types = c("CartoDB", "Esri.WorldImagery")) +
-    mapview(nonclus, color = "#7e7f81cc", cex = 1, legend = FALSE) +
-    mapview(trf, legend = FALSE, color = "#7e7f81cc") +
-    mapview(trnf, legend = FALSE, color = "#df3112cc", lwd = 3) +
+  o = 
+    mapview(map.types = c("CartoDB", "Esri.WorldImagery")) +
+    mapview(polys, zcol = "cluster", layer.name = "cluster", alpha = 0.2) +
+    if(nrow(nonclus)>0) mapview(nonclus, color = "#7e7f81cc", cex = 3,  legend = FALSE) +
+    mapview(tr, legend = FALSE, color = "#7e7f81cc") +
     mapview(clus, zcol = "cluster", layer.name = "cluster")
-  
+
   clust_ico = awesomeIcons(
     icon       = NULL,
     text       = as.character(cluster_centroids$cluster),
@@ -68,7 +74,7 @@ map <- function(clust) {
     library    = "fa",
     markerColor = "white"
   )
-  
+
   o@map |>
     addAwesomeMarkers(
       data = cluster_centroids,
