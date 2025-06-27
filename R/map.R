@@ -15,7 +15,7 @@ NULL
 
 map <- function(ctdf) {
 
-  .check_ctdf(ctdf)
+  clusterTrack:::.check_ctdf(ctdf)
 
   if (Sys.info()[["sysname"]] == "Linux")  mapviewOptions(fgb = FALSE) # 'cause Chrome sucks. 
 
@@ -56,7 +56,7 @@ map <- function(ctdf) {
   tr[, let(segement = factor(.segment) )]
   tr = st_as_sf(tr)
 
-  polys = ctdf[cluster > 0, .(hull = .mcp (location, p = 1) ), by = cluster] |>
+  polys = ctdf[cluster > 0, .(hull = clusterTrack:::.mcp (location, p = 1) ), by = cluster] |>
     st_as_sf()
 
 
