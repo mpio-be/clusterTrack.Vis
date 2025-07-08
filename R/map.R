@@ -38,7 +38,7 @@ map <- function(ctdf, prop = 0.9) {
   all_track = st_as_sf(all_track)
 
   polys = sites[, .(cluster, site_poly)] |>st_as_sf()
-  spsites = sites[, .(cluster, lab, geometry)] |>st_as_sf()
+  spsites = sites[, .(cluster, lab, site_poly_center)] |>st_as_sf()
 
   o = 
     mapview(map.types = c("CartoDB", "Esri.WorldImagery")) +

@@ -29,6 +29,8 @@ summarise_ctdf <- function(ctdf, site_poly = "mcp", prop = 0.9) {
       st_transform(crs = 4326)
   ), by = cluster]
 
+  polys[, site_poly_center := st_centroid(polys$site_poly)]
+
   o = merge(x, polys, by = "cluster")
   o[, cluster := factor(cluster)]
   o
