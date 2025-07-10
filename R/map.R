@@ -20,7 +20,7 @@ map <- function(ctdf, prop = 0.9) {
   move_track = st_as_sf(ctdf[cluster ==0])  
   site_track = st_as_sf(ctdf[cluster != 0])  
   
-  sites = summarise_ctdf(ctdf, prop = 0.9)
+  sites = summarise_ctdf(ctdf, prop = prop)
   sites[tenure < 1, Tenure := glue_data(.SD, "{round(tenure*24)}[h]")]
   sites[tenure > 1, Tenure := glue_data(.SD, "{round(tenure,1)}[d]")]
   sites[, lab := glue_data(

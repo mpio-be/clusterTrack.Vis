@@ -13,8 +13,8 @@ map(ctdf, prop = 0.9)
 Visualize clustered track data on an interactive map.
 }
 \examples{
+require(clusterTrack.Vis)
 data(pesa56511)
 ctdf = as_ctdf(pesa56511, time = "locationDate") |> cluster_track()
-
 map(ctdf)
 }
