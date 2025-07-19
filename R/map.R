@@ -13,54 +13,100 @@
 
 map <- function(ctdf, prop = 0.9) {
 
+  
   clusterTrack:::.check_ctdf(ctdf)
 
-  mapviewOptions(fgb = FALSE) 
+  CD = st_as_sf(ctdf) |> st_transform(4326)
+  CD = mutate(CD,
+    pt_lab = glue("time: {format(timestamp, '%d-%b-%y %H:%M')} <br/> seg: {`.segment`}<b/r>")
+  ) |>
+    rowwise() |>
+    mutate(pt_lab = htmltools::HTML(pt_lab) )
 
-  move_track = st_as_sf(ctdf[cluster ==0])  
-  site_track = st_as_sf(ctdf[cluster != 0])  
+  move_points = dplyr::filter(CD, cluster ==0)  
+  site_points = dplyr::filter(CD, cluster != 0)  
   
+    
   sites = summarise_ctdf(ctdf, prop = prop)
   sites[tenure < 1, Tenure := glue_data(.SD, "{round(tenure*24)}[h]")]
   sites[tenure > 1, Tenure := glue_data(.SD, "{round(tenure,1)}[d]")]
   sites[, lab := glue_data(
     .SD,
-    "tenure:{Tenure}                      <br>
-    start:{format(start, '%d-%b-%y %Hh')} <br>
-    stop:{format(stop, '%d-%b-%y %Hh')}   <br>
-    segments:{segments}                   <br>
+    "tenure:{Tenure}                      <br/>
+    start:{format(start, '%d-%b-%y %Hh')} <br/>
+    stop:{format(stop, '%d-%b-%y %Hh')}   <br/>
+    segments:{segments}                   <br/>
     N:{N}"
   )]
-    
 
   all_track = as_ctdf_track(ctdf) |> st_transform(crs = 4326) |> setDT()
   all_track[, let(segement = factor(.segment) )]
   all_track = st_as_sf(all_track)
 
-  polys = sites[, .(cluster, site_poly)] |>st_as_sf()
-  spsites = sites[, .(cluster, lab, site_poly_center)] |>st_as_sf()
+  polys  = sites[, .(cluster, site_poly)] |>st_as_sf()
+  labels = sites[, .(cluster, lab, site_poly_center)] |>st_as_sf()
 
-  o = 
-    mapview(map.types = c("CartoDB", "Esri.WorldImagery")) +
-    mapview(polys, zcol = "cluster", layer.name = "cluster", alpha = 0.2) +
-    if(nrow(move_track)>0) mapview(move_track, color = "#7e7f81cc", cex = 3,  legend = FALSE) +
-    mapview(all_track, legend = FALSE, color = "#7e7f81cc") +
-    mapview(site_track, zcol = "cluster", layer.name = "cluster", legend = FALSE)
 
-  clust_ico = awesomeIcons(
-    icon       = NULL,
-    text       = as.character(sites$cluster),
-    iconColor  = "black",
-    library    = "fa",
-    markerColor = "white"
-  )
+  # map elements
+    pal = colorFactor(viridis::viridis(unique(sites$cluster) |> length()), sites$cluster)
 
-  o@map |>
-    addAwesomeMarkers(
-      data = spsites,
-      icon = clust_ico, 
-      popup = ~lab
+
+    clust_ico = awesomeIcons(
+      icon       = NULL,
+      text       = as.character(sites$cluster),
+      iconColor  = "black",
+      library    = "fa",
+      markerColor = "white"
     )
+
+  # build map
+  leaflet() |>
+    addTiles() |>
+    addPolylines(
+      data    = all_track,
+      color   = "#7e7f81cc",
+      weight  = 1.5,
+      opacity = 0.5,
+      group   = "All Track"
+    ) |>
+    addCircleMarkers(
+      data        = move_points,
+      label       = ~pt_lab, 
+      radius      = 4,
+      color       =  "#7e7f81cc", 
+      stroke      = FALSE,
+      opacity     = 0.3,
+      fillOpacity = 1,
+      group       = "Site Track"
+    ) |>
+    addPolygons(
+      data        = polys,
+      fillColor   = ~ pal(cluster),
+      fillOpacity = 0.5,
+      weight      = 0,
+      group       = "Clusters"
+    ) |>
+    addCircleMarkers(
+      data        = site_points,
+      label       = ~pt_lab, 
+      radius      = 5,
+      color       = ~pal(cluster),
+      stroke      = FALSE,
+      fillOpacity = 1,
+      group       = "Site Track"
+    ) |>
+    addAwesomeMarkers(
+      data  = labels,
+      icon  = clust_ico,
+      popup = ~lab,
+      group = "Cluster Icons", 
+      popupOptions = popupOptions(
+      autoClose    = FALSE,
+      keepInView = TRUE,   
+      closeOnClick = FALSE   
+      )
+    ) 
+
 
 
 }
