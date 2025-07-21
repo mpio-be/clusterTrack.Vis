@@ -42,11 +42,18 @@ map <- function(ctdf, prop = 0.9) {
   if(nrow(ctdf[!is.na(cluster)])==0) stop("this ctdf does not have any clusters!")
 
 
-  N    = glue("<b>N fixes</b>: {nrow(ctdf)},<b> N clusters:</b>: {nrow(ctdf[cluster > 0,.N, cluster])}")
-  pack = glue("<b>clusterTrack:</b> { packageVersion('clusterTrack')}")
+  N = glue("<b>N</b>:<br>
+            - fixes:{nrow(ctdf)} <br>
+            - segments: {max(ctdf$.segment, na.rm = TRUE)} <br>
+            - clusters: {max(ctdf$cluster)}")
+  
+  cluster_par = attr(ctdf, "cluster_params")
+  cluster_par = glue(" - {names(cluster_par)} = {cluster_par}") |> paste(collapse = "<br>")
+  cluster_par = glue("<b>Parameters</b>:<br>{cluster_par}")
+  
+  pack = glue("<i>clusterTrack v.{ packageVersion('clusterTrack')}</i>")
 
-
-  nfo = c(N, pack)
+  nfo = c(N, cluster_par, pack)
 
   CD = st_as_sf(ctdf) |> st_transform(4326)
   CD = mutate(CD,
