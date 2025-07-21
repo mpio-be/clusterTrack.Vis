@@ -1,4 +1,27 @@
 
+info_box <- function(items) {
+
+  html_list = 
+    sapply(items, function(item) glue::glue("<li>{item}</li>")) |>
+    glue_collapse()
+  html_list = glue::glue("<ul>{html_list}</ul>")
+
+
+  htmltools::HTML(
+    glue::glue(
+    '<div class="modal" id="infobox" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-body">
+              {html_list}
+            </div>
+          </div>
+        </div>
+      </div>'
+    )
+  )
+}
+
 #' Map a ctdf object
 #'
 #' Visualize clustered track data on an interactive map.
@@ -15,6 +38,15 @@ map <- function(ctdf, prop = 0.9) {
 
   
   clusterTrack:::.check_ctdf(ctdf)
+
+  if(nrow(ctdf[!is.na(cluster)])==0) stop("this ctdf does not have any clusters!")
+
+
+  N    = glue("<b>N fixes</b>: {nrow(ctdf)},<b> N clusters:</b>: {nrow(ctdf[cluster > 0,.N, cluster])}")
+  pack = glue("<b>clusterTrack:</b> { packageVersion('clusterTrack')}")
+
+
+  nfo = c(N, pack)
 
   CD = st_as_sf(ctdf) |> st_transform(4326)
   CD = mutate(CD,
@@ -44,7 +76,7 @@ map <- function(ctdf, prop = 0.9) {
   all_track = st_as_sf(all_track)
 
   polys  = sites[, .(cluster, site_poly)] |>st_as_sf()
-  labels = sites[, .(cluster, lab, site_poly_center)] |>st_as_sf()
+  labels = sites[, .(cluster, lab, site_poly_center, stop)] |>st_as_sf()
 
 
   # map elements
@@ -71,9 +103,9 @@ map <- function(ctdf, prop = 0.9) {
     ) |>
     addCircleMarkers(
       data        = move_points,
-      label       = ~pt_lab, 
+      label       = ~pt_lab,
       radius      = 4,
-      color       =  "#7e7f81cc", 
+      color       =  "#7e7f81cc",
       stroke      = FALSE,
       opacity     = 0.3,
       fillOpacity = 1,
@@ -88,24 +120,40 @@ map <- function(ctdf, prop = 0.9) {
     ) |>
     addCircleMarkers(
       data        = site_points,
-      label       = ~pt_lab, 
+      label       = ~pt_lab,
       radius      = 5,
-      color       = ~pal(cluster),
+      color       = ~ pal(cluster),
       stroke      = FALSE,
       fillOpacity = 1,
       group       = "Site Track"
     ) |>
     addAwesomeMarkers(
-      data  = labels,
-      icon  = clust_ico,
+      data = labels,
+      icon = clust_ico,
       popup = ~lab,
-      group = "Cluster Icons", 
+      group = "Cluster Icons",
       popupOptions = popupOptions(
-      autoClose    = FALSE,
-      keepInView = TRUE,   
-      closeOnClick = FALSE   
+        autoClose    = FALSE,
+        keepInView   = TRUE,
+        closeOnClick = FALSE
       )
-    ) 
+    ) |>
+    addTimeslider(
+      data = labels,
+      options = timesliderOptions(timeAttribute = "stop")
+    ) |>
+    addBootstrapDependency() |>
+    addEasyButton(easyButton(
+      icon    = '<i class="fa fa-dot-circle-o" style="color:red; font-weight:bold;"></i>',
+      title   = "clusterTrack",
+      onClick = JS("function(btn, map){ $('#infobox').modal('show'); }")
+    )) |>
+    htmlwidgets::appendContent(
+      info_box(nfo)
+    )
+
+
+
 
 
 
