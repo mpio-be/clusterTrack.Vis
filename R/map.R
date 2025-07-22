@@ -97,7 +97,6 @@ map <- function(ctdf, path, prop = 1) {
   polys  = sites[, .(cluster, site_poly)] |>st_as_sf()
   labels = sites[, .(cluster, lab, site_poly_center, stop)] |>st_as_sf()
 
-
   # map elements
     pal = colorFactor(viridis::viridis(unique(sites$cluster) |> length()), sites$cluster)
 
@@ -113,7 +112,10 @@ map <- function(ctdf, path, prop = 1) {
   # build map
   mm =
     leaflet() |>
-    addTiles() |>
+    addTiles(group = "OSM Default") |>
+    addProviderTiles("OpenTopoMap", group = "Open Topo Map") |>
+    addProviderTiles("Esri.WorldImagery", group = "Esri World Imagery") |>
+    addProviderTiles("Esri.WorldGrayCanvas", group = "Esri World Gray Canvas") |>
     addPolylines(
       data    = all_track,
       color   = "#7e7f81cc",
@@ -158,10 +160,6 @@ map <- function(ctdf, path, prop = 1) {
         closeOnClick = FALSE
       )
     ) |>
-    addTimeslider(
-      data = labels,
-      options = timesliderOptions(timeAttribute = "stop")
-    ) |>
     addBootstrapDependency(
       # 
 
@@ -173,8 +171,15 @@ map <- function(ctdf, path, prop = 1) {
     ) |>
     appendContent(
       info_box(nfo)
+    ) |>
+    addLayersControl(
+      baseGroups    = c(
+                      "Esri World Gray Canvas",
+                      "Open Topo Map",
+                      "OSM Default",
+                      "Esri World Imagery"),
+      options       = layersControlOptions(collapsed = TRUE)
     )
-
 
   if(!missing(path)) {
     saveWidget(mm, path,title = basename(path) |> str_remove('.html'),  selfcontained = FALSE, libdir = "maplibs")
