@@ -155,19 +155,27 @@ map <- function(ctdf, path, prop = 1) {
       popup = ~lab,
       group = "Cluster Icons",
       popupOptions = popupOptions(
+        autoPan      = FALSE,
         autoClose    = FALSE,
         keepInView   = TRUE,
         closeOnClick = FALSE
       )
     ) |>
     addBootstrapDependency(
-      # 
-
+      #
     ) |>
     addEasyButton(easyButton(
       icon    = '<i class="fa fa-dot-circle-o" style="color:red; font-weight:bold;"></i>',
       title   = "clusterTrack",
-      onClick = JS("function(btn, map){ $('#infobox').modal('show'); }"))
+      onClick = JS("function(btn, map){ $('#infobox').modal('show'); }")
+    )) |>
+    addTimeslider(
+      data = labels,
+      options = timesliderOptions(
+        timeAttribute = "stop",
+         range        = FALSE,
+          rezoom      = FALSE
+        )
     ) |>
     appendContent(
       info_box(nfo)
