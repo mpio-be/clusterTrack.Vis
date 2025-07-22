@@ -187,7 +187,7 @@ map <- function(ctdf, path, prop = 1) {
     )
 
   if(!missing(path)) {
-    saveWidget(mm, path, selfcontained = FALSE, libdir = "maplibs")
+    saveWidget(mm, path,title = basename(path) |> str_remove('.html'),  selfcontained = FALSE, libdir = "maplibs")
   } else {
     return(mm)
   }

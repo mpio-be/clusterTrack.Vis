@@ -7,5 +7,6 @@
 #' @importFrom htmlwidgets appendContent saveWidget
 #' @importFrom  yyjsonr write_geojson_str
 #' @importFrom glue glue glue_data glue_collapse
+#' @importFrom stringr str_remove
 #' @importFrom dplyr filter mutate rowwise
 NULL
