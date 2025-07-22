@@ -25,6 +25,18 @@ info_box <- function(items) {
 #' Map a ctdf object
 #'
 #' Visualize clustered track data on an interactive map.
+#' 
+#' @param ctdf A `ctdf` object produced by `cluster_track()`.
+#' @param path Optional `character`. File path where the HTML map will be saved. 
+#'             If omitted, the function returns the `leaflet` map object.
+#' @param prop Numeric (0 < prop ≤ 1). Fraction of each cluster’s points 
+#'            used to construct the site polygons on the map. 
+#'            lower values produce tighter, core‐area convex‐hull polygons; 
+#'            prop = 1 (default) includes all points in the hull.
+#' @return A `leaflet` map object if `path` is not provided. 
+#'        If `path` is provided, an HTML file (and its `maplibs/` directory) is written to disk.
+#' @seealso [clusterTrack::cluster_track()], [htmlwidgets::saveWidget()]
+#
 #'
 #' @param ctdf A `ctdf` object.
 #' @export
@@ -34,7 +46,7 @@ info_box <- function(items) {
 #' ctdf = as_ctdf(pesa56511, time = "locationDate") |> cluster_track()
 #' map(ctdf)
 
-map <- function(ctdf, prop = 0.9) {
+map <- function(ctdf, path, prop = 1) {
 
   
   clusterTrack:::.check_ctdf(ctdf)
@@ -99,8 +111,12 @@ map <- function(ctdf, prop = 0.9) {
     )
 
   # build map
-  leaflet() |>
-    addTiles() |>
+  mm =
+    leaflet() |>
+    addTiles(group = "OSM Default") |>
+    addProviderTiles("OpenTopoMap", group = "Open Topo Map") |>
+    addProviderTiles("Esri.WorldImagery", group = "Esri World Imagery") |>
+    addProviderTiles("Esri.WorldGrayCanvas", group = "Esri World Gray Canvas") |>
     addPolylines(
       data    = all_track,
       color   = "#7e7f81cc",
@@ -149,19 +165,32 @@ map <- function(ctdf, prop = 0.9) {
       data = labels,
       options = timesliderOptions(timeAttribute = "stop")
     ) |>
-    addBootstrapDependency() |>
+    addBootstrapDependency(
+      # 
+
+    ) |>
     addEasyButton(easyButton(
       icon    = '<i class="fa fa-dot-circle-o" style="color:red; font-weight:bold;"></i>',
       title   = "clusterTrack",
-      onClick = JS("function(btn, map){ $('#infobox').modal('show'); }")
-    )) |>
-    htmlwidgets::appendContent(
+      onClick = JS("function(btn, map){ $('#infobox').modal('show'); }"))
+    ) |>
+    appendContent(
       info_box(nfo)
+    ) |>
+    addLayersControl(
+      baseGroups    = c(
+                      "Esri World Gray Canvas",
+                      "Open Topo Map",
+                      "OSM Default",
+                      "Esri World Imagery"),
+      options       = layersControlOptions(collapsed = TRUE)
     )
 
-
-
-
+  if(!missing(path)) {
+    saveWidget(mm, path, selfcontained = FALSE, libdir = "maplibs")
+  } else {
+    return(mm)
+  }
 
 
 }
